@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://student-portal-v2d8.onrender.com', // Proxied automatically by Vite to port 5000
+  baseURL: 'https://student-portal-v2d8.onrender.com/api', // Proxied automatically by Vite to port 5000
 });
 
 // Interceptor to automatically attach JWT token on all outgoing calls
