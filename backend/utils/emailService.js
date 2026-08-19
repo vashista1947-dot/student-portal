@@ -5,6 +5,9 @@ const createTransporter = () => {
   const cleanPass = rawPass.replace(/\s+/g, '');
   return nodemailer.createTransport({
     service: 'gmail',
+    connectionTimeout: 5000, // 5 seconds connection timeout
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
     auth: {
       user: process.env.SENDER_EMAIL,
       pass: cleanPass
@@ -13,6 +16,15 @@ const createTransporter = () => {
 };
 
 const sendDispatchEmail = async ({ to, subject, body, excelBuffer, fileName, adminName }) => {
+  if (!process.env.SENDER_EMAIL || !process.env.SENDER_PASSWORD) {
+    console.log(`\n📧 [Mock Data Dispatch] (SMTP Credentials Missing):`);
+    console.log(`   To: ${to}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   Attachment: ${fileName}`);
+    console.log(`   Body: ${body}\n`);
+    return { mock: true, messageId: 'mock-id-dispatch' };
+  }
+
   const transporter = createTransporter();
 
   const mailOptions = {
@@ -35,6 +47,10 @@ const sendDispatchEmail = async ({ to, subject, body, excelBuffer, fileName, adm
 
 const sendOtpEmail = async ({ to, otpCode, name }) => {
   try {
+    if (!process.env.SENDER_EMAIL || !process.env.SENDER_PASSWORD) {
+      throw new Error('SMTP credentials missing');
+    }
+
     const transporter = createTransporter();
 
     const mailOptions = {
@@ -68,6 +84,17 @@ const sendOtpEmail = async ({ to, otpCode, name }) => {
 };
 
 const sendInvitationEmail = async ({ to, cc, bcc, subject, html, attachments, adminName }) => {
+  if (!process.env.SENDER_EMAIL || !process.env.SENDER_PASSWORD) {
+    console.log(`\n📧 [Mock Email Dispatch] (SMTP Credentials Missing):`);
+    console.log(`   To: ${to}`);
+    console.log(`   CC: ${cc || 'None'}`);
+    console.log(`   BCC: ${bcc || 'None'}`);
+    console.log(`   Subject: ${subject}`);
+    console.log(`   Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+    console.log(`   HTML Content Length: ${html.length} chars\n`);
+    return { mock: true, messageId: 'mock-id-invitation' };
+  }
+
   const transporter = createTransporter();
 
   const mailOptions = {
