@@ -52,6 +52,8 @@ const SendInvitation = () => {
   const { addToast } = useToast();
   const [sending, setSending] = useState(false);
   const [scheduledEmails, setScheduledEmails] = useState([]);
+  const [countdown, setCountdown] = useState(null);
+  const [countdownIntervalId, setCountdownIntervalId] = useState(null);
 
   useEffect(() => {
     fetchScheduledEmails();
@@ -120,36 +122,68 @@ const SendInvitation = () => {
       return;
     }
 
-    setSending(true);
-    try {
-      const payload = {
-        receiverEmails: receiverEmail.trim(),
-        ccEmails: ccEmail.trim() || undefined,
-        bccEmails: bccEmail.trim() || undefined,
-        companyName: companyName.trim(),
-        coordinators: validCoordinators.map(c => ({
-          name: c.name.trim(),
-          phone: c.phone.trim() || undefined
-        })),
-        scheduledFor: isScheduled ? new Date(scheduledFor).toISOString() : undefined
-      };
+    const performSend = async () => {
+      setSending(true);
+      try {
+        const payload = {
+          receiverEmails: receiverEmail.trim(),
+          ccEmails: ccEmail.trim() || undefined,
+          bccEmails: bccEmail.trim() || undefined,
+          companyName: companyName.trim(),
+          coordinators: validCoordinators.map(c => ({
+            name: c.name.trim(),
+            phone: c.phone.trim() || undefined
+          })),
+          scheduledFor: isScheduled ? new Date(scheduledFor).toISOString() : undefined
+        };
 
-      const response = await sendInvitation(payload);
-      addToast(response.data?.message || 'Placement invitation processed successfully!', 'success');
-      fetchScheduledEmails();
+        const response = await sendInvitation(payload);
+        addToast(response.data?.message || 'Placement invitation processed successfully!', 'success');
+        fetchScheduledEmails();
 
-      // Reset form
-      setReceiverEmail('');
-      setCcEmail('');
-      setBccEmail('');
-      setCompanyName('');
-      setCoordinators([{ name: '', phone: '' }]);
-      setIsScheduled(false);
-      setScheduledFor('');
-    } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to process invitation email', 'error');
-    } finally {
-      setSending(false);
+        // Reset form
+        setReceiverEmail('');
+        setCcEmail('');
+        setBccEmail('');
+        setCompanyName('');
+        setCoordinators([{ name: '', phone: '' }]);
+        setIsScheduled(false);
+        setScheduledFor('');
+      } catch (err) {
+        addToast(err.response?.data?.message || 'Failed to process invitation email', 'error');
+      } finally {
+        setSending(false);
+        setCountdown(null);
+      }
+    };
+
+    if (!isScheduled) {
+      // Immediate send: trigger 5-second countdown timer
+      if (countdown !== null) {
+        // If already counting down, clicking again cancels it
+        clearInterval(countdownIntervalId);
+        setCountdown(null);
+        setCountdownIntervalId(null);
+        addToast('Email dispatch cancelled', 'info');
+        return;
+      }
+
+      setCountdown(5);
+      const intervalId = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(intervalId);
+            setCountdownIntervalId(null);
+            performSend();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      setCountdownIntervalId(intervalId);
+    } else {
+      // Scheduled send: perform immediately (adds to database schedule)
+      await performSend();
     }
   };
 
@@ -404,7 +438,7 @@ const SendInvitation = () => {
             </div>
 
             {/* ── Submit Button ── */}
-            <button
+             <button
               type="submit"
               className="btn btn-primary"
               style={{
@@ -416,14 +450,18 @@ const SendInvitation = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                background: countdown !== null ? '#ef4444' : 'var(--accent-primary)',
+                borderColor: countdown !== null ? '#ef4444' : 'var(--accent-primary)'
               }}
               disabled={sending}
             >
               {isScheduled ? <Clock size={16} /> : <Send size={16} />}
               {sending
                 ? (isScheduled ? 'Scheduling invitation...' : 'Dispatching invitation...')
-                : (isScheduled ? 'Schedule Invitation' : 'Send Invitation')
+                : countdown !== null
+                  ? `Sending in ${countdown}s... (Click to Cancel)`
+                  : (isScheduled ? 'Schedule Invitation' : 'Send Invitation')
               }
             </button>
           </form>
