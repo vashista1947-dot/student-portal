@@ -171,9 +171,21 @@ const sendInvitation = async (req, res, next) => {
     // Construct plain HTML body
     const html = getInvitationHtml(companyName, coordinators);
 
-    // Respond immediately — email sends in background
+    // Send email and wait for it to complete
+    await sendInvitationEmail({
+      to: receiverEmails,
+      cc: ccEmails || undefined,
+      bcc: bccEmails || undefined,
+      subject,
+      html,
+      attachments,
+      adminName: req.user.name
+    });
+
+    console.log(`✅ Invitation email sent to ${receiverEmails} for ${companyName}`);
+
     res.json({
-      message: 'Placement Invitation email is being dispatched!',
+      message: 'Placement Invitation email sent successfully!',
       details: {
         company: companyName,
         recipients: receiverEmails,
@@ -182,24 +194,23 @@ const sendInvitation = async (req, res, next) => {
         coordinatorsCount: coordinators.length
       }
     });
-
-    // Fire and forget — send email in background
-    sendInvitationEmail({
-      to: receiverEmails,
-      cc: ccEmails || undefined,
-      bcc: bccEmails || undefined,
-      subject,
-      html,
-      attachments,
-      adminName: req.user.name
-    }).then(() => {
-      console.log(`✅ Invitation email sent to ${receiverEmails} for ${companyName}`);
-    }).catch((err) => {
-      console.error(`❌ Failed to send invitation email to ${receiverEmails}:`, err.message);
-    });
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = { sendData, sendInvitation };
+// @desc    Get all pending/failed scheduled emails
+// @route   GET /api/dispatch/scheduled
+const getScheduledEmails = async (req, res, next) => {
+  try {
+    const scheduled = await ScheduledEmail.find({
+      status: { $in: ['pending', 'failed'] }
+    }).sort({ scheduledFor: 1 });
+
+    res.json(scheduled);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { sendData, sendInvitation, getScheduledEmails };

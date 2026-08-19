@@ -59,5 +59,6 @@ export const unbanStudent = (id) => api.put(`/admin/students/${id}/unban`);
 // Dispatch Module (Bulk Emails)
 export const sendBulkEmail = (dispatchData) => api.post('/dispatch/send', dispatchData);
 export const sendInvitation = (inviteData) => api.post('/dispatch/send-invitation', inviteData);
+export const getScheduledEmails = () => api.get('/dispatch/scheduled');
 
 export default api;

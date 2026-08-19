@@ -1,11 +1,70 @@
-import { useState } from 'react';
-import { sendInvitation } from '../../services/api';
+import { useState, useEffect } from 'react';
+import { sendInvitation, getScheduledEmails } from '../../services/api';
 import { useToast } from '../../components/common/Toast';
 import { Mail, Plus, Trash2, Eye, Send, Users, Building2, UserPlus, Calendar, Clock } from 'lucide-react';
+
+const CountdownTimer = ({ targetDate, onZero }) => {
+  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+  function calculateTimeLeft() {
+    const difference = +new Date(targetDate) - +new Date();
+    if (difference <= 0) return null;
+
+    const seconds = Math.floor((difference / 1000) % 60);
+    const minutes = Math.floor((difference / 1000 / 60) % 60);
+    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+
+    return { days, hours, minutes, seconds, difference };
+  }
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      if (!remaining) {
+        clearInterval(timer);
+        if (onZero) onZero();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (!timeLeft) {
+    return <span style={{ color: 'var(--accent-success)', fontWeight: 600 }}>Sent ✉️</span>;
+  }
+
+  const parts = [];
+  if (timeLeft.days > 0) parts.push(`${timeLeft.days}d`);
+  if (timeLeft.hours > 0) parts.push(`${timeLeft.hours}h`);
+  if (timeLeft.minutes > 0) parts.push(`${timeLeft.minutes}m`);
+  parts.push(`${timeLeft.seconds}s`);
+
+  return (
+    <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+      Sends in {parts.join(' ')}
+    </span>
+  );
+};
 
 const SendInvitation = () => {
   const { addToast } = useToast();
   const [sending, setSending] = useState(false);
+  const [scheduledEmails, setScheduledEmails] = useState([]);
+
+  useEffect(() => {
+    fetchScheduledEmails();
+  }, []);
+
+  const fetchScheduledEmails = async () => {
+    try {
+      const { data } = await getScheduledEmails();
+      setScheduledEmails(data);
+    } catch (err) {
+      console.error('Failed to fetch scheduled emails:', err);
+    }
+  };
 
   // Form states
   const [receiverEmail, setReceiverEmail] = useState('');
@@ -77,6 +136,7 @@ const SendInvitation = () => {
 
       const response = await sendInvitation(payload);
       addToast(response.data?.message || 'Placement invitation processed successfully!', 'success');
+      fetchScheduledEmails();
 
       // Reset form
       setReceiverEmail('');
@@ -514,6 +574,70 @@ const SendInvitation = () => {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* ─── BOTTOM: Scheduled Emails List ──────────────────── */}
+      <div className="card animate-fade-in" style={{ marginTop: '24px' }}>
+        <h2 style={{ fontSize: '1.08rem', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Clock size={18} color="var(--accent-primary)" /> Pending & Scheduled Invitations ({scheduledEmails.length})
+        </h2>
+        
+        {scheduledEmails.length === 0 ? (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', fontStyle: 'italic', margin: 0 }}>
+            No pending or scheduled invitations in the queue.
+          </p>
+        ) : (
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Company Name</th>
+                  <th>Recipients</th>
+                  <th>Admin Name</th>
+                  <th>Scheduled For</th>
+                  <th>Remaining Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scheduledEmails.map((email) => (
+                  <tr key={email._id}>
+                    <td style={{ fontWeight: 600 }}>{email.companyName}</td>
+                    <td>{email.receiverEmails}</td>
+                    <td>{email.adminName || 'Admin'}</td>
+                    <td>{new Date(email.scheduledFor).toLocaleString()}</td>
+                    <td>
+                      <CountdownTimer 
+                        targetDate={email.scheduledFor} 
+                        onZero={() => {
+                          setTimeout(fetchScheduledEmails, 2000);
+                        }} 
+                      />
+                    </td>
+                    <td>
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        background: email.status === 'failed' ? 'rgba(239,68,68,0.1)' : 'rgba(204,120,92,0.08)',
+                        color: email.status === 'failed' ? '#ef4444' : 'var(--accent-primary)',
+                        border: email.status === 'failed' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(204,120,92,0.2)'
+                      }}>
+                        {email.status.toUpperCase()}
+                      </span>
+                      {email.error && (
+                        <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '4px' }}>
+                          Error: {email.error}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
