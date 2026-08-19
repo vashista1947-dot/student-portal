@@ -3,28 +3,37 @@ const User = require('../models/User');
 
 const connectDB = async () => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production';
     let mongoUri = process.env.MONGO_URI;
 
-    if (!mongoUri) {
-      console.log('⚠️ MONGO_URI is not set. Trying default localhost MongoDB...');
-      mongoUri = 'mongodb://127.0.0.1:27017/student-portal';
-    }
+    if (isProduction) {
+      if (!mongoUri) {
+        throw new Error('MONGO_URI environment variable is missing in production!');
+      }
+      console.log('Connecting to production database...');
+      const conn = await mongoose.connect(mongoUri);
+      console.log(`MongoDB Connected (Production): ${conn.connection.host}`);
+    } else {
+      if (!mongoUri) {
+        mongoUri = 'mongodb://127.0.0.1:27017/student-portal';
+      }
 
-    try {
-      console.log(`Trying to connect to MongoDB at: ${mongoUri}`);
-      const conn = await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2000 });
-      console.log(`MongoDB Connected: ${conn.connection.host}`);
-    } catch (localError) {
-      console.log('⚠️ Local MongoDB connection failed or service not running.');
-      console.log('🚀 Starting an In-Memory MongoDB Server instead...');
-      
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      const mongoServer = await MongoMemoryServer.create();
-      const inMemoryUri = mongoServer.getUri();
-      
-      console.log(`ℹ️ In-Memory MongoDB running at: ${inMemoryUri}`);
-      const conn = await mongoose.connect(inMemoryUri);
-      console.log(`MongoDB Connected (In-Memory): ${conn.connection.host}`);
+      try {
+        console.log(`Trying to connect to MongoDB at: ${mongoUri}`);
+        const conn = await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2000 });
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+      } catch (localError) {
+        console.log('⚠️ Local MongoDB connection failed or service not running.');
+        console.log('🚀 Starting an In-Memory MongoDB Server instead...');
+        
+        const { MongoMemoryServer } = require('mongodb-memory-server');
+        const mongoServer = await MongoMemoryServer.create();
+        const inMemoryUri = mongoServer.getUri();
+        
+        console.log(`ℹ️ In-Memory MongoDB running at: ${inMemoryUri}`);
+        const conn = await mongoose.connect(inMemoryUri);
+        console.log(`MongoDB Connected (In-Memory): ${conn.connection.host}`);
+      }
     }
 
     // Auto-seed Super Admin if it does not exist
