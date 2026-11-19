@@ -25,14 +25,23 @@ async function answerQuestion(event, question, history) {
   contents.push({ role: 'user', parts: [
     { text: 'Opportunity reference data: ' + JSON.stringify(context) }, { text: question }
   ] });
+  // Preparation and practice can use the posting directly. Keep search available
+  // for historical claims, external sources, and ambiguous follow-up questions.
+  const preparation = /\b(prepar\w*|study|practice|quiz|focus|explain|practice plan|padh\w*|taiyari)\b/i.test(question);
+  const external = /\b(search|research|sources?|previous\w*|past|last|asked|actual|real|colleges?|campus|visits?|latest|reported|histor\w*|pich\w*|pooch\w*|20\d{2})\b/i.test(question);
+  const search = external || !preparation;
   const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' +
     encodeURIComponent(model) + ':generateContent', {
     method: 'POST', signal: AbortSignal.timeout(70000),
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: instructions }] }, contents,
-      tools: [{ google_search: {} }] })
+      ...(search ? { tools: [{ google_search: {} }] } : {}) })
   });
-  if (!response.ok) throw new Error('Gemini request failed (' + response.status + ')');
+  if (!response.ok) {
+    const error = new Error('Gemini request failed (' + response.status + ')');
+    error.providerStatus = response.status;
+    throw error;
+  }
   const candidate = (await response.json()).candidates?.[0];
   const answer = candidate?.content?.parts?.filter(part => !part.thought).map(part => part.text || '').join('').trim();
   if (!answer) throw new Error('Empty Gemini response');

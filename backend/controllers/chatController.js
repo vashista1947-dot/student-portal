@@ -76,6 +76,9 @@ async function ask(req, res) {
   } catch (err) {
     console.warn('Opportunity chat:', err.message);
     await ChatTurn.updateOne(claim, { status: 'failed' });
+    if (err.providerStatus === 429) {
+      return res.status(429).json({ message: "Gemini's quota for this portal is exhausted. Your question is saved. Retry after quota resets, or ask the administrator to check the project's rate limits." });
+    }
     res.status(503).json({ message: 'Gemini could not answer. Your question is saved. Please retry.' });
   }
 }

@@ -76,7 +76,7 @@ test('opportunity chat saves scoped history, context, citations and retriable qu
   assert.equal(sent, 200);
   assert.equal(turn.reference, 'JD PDF');
   assert.match(JSON.stringify(request.contents), /Practice SQL joins/);
-  assert.deepEqual(request.tools, [{ google_search: {} }]);
+  assert.equal(request.tools, undefined);
   await call(1, pdfChat, msg);
   assert.equal((await call(1, pdfChat))[1].length, 1);
   assert.equal((await call(2, pdfChat))[1].length, 0);
@@ -84,6 +84,7 @@ test('opportunity chat saves scoped history, context, citations and retriable qu
   const follow = { requestId: 'request-two-0002', question: 'What was asked last year?' };
   const [, researched] = await call(1, pdfChat, follow);
   assert.equal(researched.sources[0].title, 'Campus report');
+  assert.deepEqual(request.tools, [{ google_search: {} }]);
   assert.equal(request.contents[1].role, 'model');
   grounded = false;
   const [, unavailable] = await call(1, textChat, follow);
