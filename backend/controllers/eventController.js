@@ -1,4 +1,5 @@
 const JobEvent = require('../models/JobEvent');
+const { extractPdf } = require('../utils/jobDescription');
 const Company = require('../models/Company');
 const Application = require('../models/Application');
 
@@ -60,7 +61,18 @@ const createEvent = async (req, res, next) => {
       return res.status(404).json({ message: 'Company not found' });
     }
 
+    let jdText;
+    let pdfWarning;
+    if (req.body.jdPdf) {
+      try {
+        jdText = await extractPdf(req.body.jdPdf);
+      } catch (error) {
+        if (!additionalInfo?.trim()) return res.status(400).json({ message: error.message });
+        pdfWarning = error.message + ' The written description was saved.';
+      }
+    }
     const event = await JobEvent.create({
+      jdText, hasJdPdf: Boolean(jdText),
       company: companyId,
       season,
       jobRole,
@@ -85,7 +97,7 @@ const createEvent = async (req, res, next) => {
       .populate('company', 'name season')
       .populate('createdBy', 'name email');
 
-    res.status(201).json({ message: 'Event created successfully', event: populatedEvent });
+    res.status(201).json({ message: 'Event created successfully', pdfWarning, event: populatedEvent });
   } catch (error) {
     next(error);
   }
@@ -106,6 +118,17 @@ const updateEvent = async (req, res, next) => {
       return res.status(403).json({ message: 'Only the admin who created this event can modify it' });
     }
 
+    if (req.body.jdPdf) {
+      try {
+        event.jdText = await extractPdf(req.body.jdPdf);
+        event.hasJdPdf = true;
+      } catch (err) {
+        return res.status(400).json({ message: err.message });
+      }
+    } else if (req.body.removeJdPdf === true) {
+      event.jdText = undefined;
+      event.hasJdPdf = false;
+    }
     const updatableFields = [
       'jobRole', 'category', 'opportunityType', 'batch', 'deadline',
       'allowedDegrees', 'eligibleBranches', 'personOfContact', 'backlogs',

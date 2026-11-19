@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { readJdPdf } from '../../services/readJdPdf';
 import { getEvents, deleteEvent, getRegistrations, updateEvent } from '../../services/api';
 import { useToast } from '../../components/common/Toast';
 import { useAuth } from '../../context/AuthContext';
@@ -63,6 +64,7 @@ const AllEvents = () => {
       deadline: event.deadline || '',
       allowedDegrees: event.allowedDegrees || ['BTech'],
       allowedBranches: event.eligibleBranches || [],
+      hasJdPdf: Boolean(event.hasJdPdf),
       description: event.additionalInfo || ''
     });
     setEditModalOpen(true);
@@ -127,7 +129,7 @@ const AllEvents = () => {
       addToast('Please select the Application Registration Deadline', 'error');
       return;
     }
-    if (!editForm.description || !editForm.description.trim()) {
+    if (!editForm.description.trim() && !editForm.jdPdf && !(editForm.hasJdPdf && !editForm.removeJdPdf)) {
       addToast('Please enter the Job Specs & Description', 'error');
       return;
     }
@@ -163,6 +165,8 @@ const AllEvents = () => {
         additionalInfo: editForm.description
       };
 
+      if (editForm.jdPdf) payload.jdPdf = await readJdPdf(editForm.jdPdf);
+      if (editForm.removeJdPdf) payload.removeJdPdf = true;
       const { data } = await updateEvent(editForm.id, payload);
       
       // Update local events list with updated event
@@ -616,7 +620,12 @@ const AllEvents = () => {
 
               <div className="form-group">
                 <label className="form-label">Job Specs & Description</label>
-                <textarea className="form-textarea" style={{ minHeight: '120px' }} placeholder="Detail coding requirements, role responsibilities, tech stacks, and rounds detail..." value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} required></textarea>
+                <label className="form-label">Job description PDF (optional, up to 5 MB)
+                  <input type="file" accept="application/pdf,.pdf" onChange={e => setEditForm({...editForm, jdPdf: e.target.files[0]})} />
+                </label>
+                {editForm.hasJdPdf && !editForm.jdPdf && <label><input type="checkbox" checked={!!editForm.removeJdPdf}
+                  onChange={e => setEditForm({...editForm, removeJdPdf: e.target.checked})} /> Remove current PDF reference</label>}
+                <textarea className="form-textarea" style={{ minHeight: '120px' }} placeholder="Detail coding requirements, role responsibilities, tech stacks, and rounds detail..." value={editForm.description} onChange={(e) => setEditForm({...editForm, description: e.target.value})} required={!editForm.jdPdf && !(editForm.hasJdPdf && !editForm.removeJdPdf)}></textarea>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>

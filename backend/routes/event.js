@@ -10,6 +10,11 @@ const { protect, requireRole } = require('../middlewares/auth');
 router.get('/', protect, getEvents);
 router.get('/:id', protect, getEvent);
 
+const chat = require('../controllers/chatController');
+const chatAccess = [protect, requireRole('student'), chat.loadOpportunity];
+router.get('/:id/chat', ...chatAccess, chat.getChat);
+router.post('/:id/chat', ...chatAccess, chat.ask);
+
 // Admin only
 router.post('/', protect, requireRole('admin', 'super_admin'), createEvent);
 router.put('/:id', protect, requireRole('admin', 'super_admin'), updateEvent);

@@ -1,0 +1,10 @@
+.opportunity-chat { display: grid; gap: 12px; }
+.opportunity-chat .chat-history { max-height: 45vh; overflow-y: auto; overflow-wrap: anywhere; }
+.opportunity-chat article { padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.opportunity-chat .chat-question { padding: 10px 12px; background: var(--bg-secondary); font-weight: 600; }
+.opportunity-chat .chat-answer, .opportunity-chat .chat-question { white-space: pre-wrap; }
+.opportunity-chat .chat-answer { margin: 10px 0; }
+.opportunity-chat small { color: var(--text-secondary); }
+.opportunity-chat ul { padding-left: 20px; }
+.opportunity-chat form { display: grid; gap: 8px; }
+.opportunity-chat form button { justify-self: end; }

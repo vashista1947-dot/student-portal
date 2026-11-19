@@ -3,6 +3,7 @@ import { getCompanies, createEvent } from '../../services/api';
 import { useToast } from '../../components/common/Toast';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Plus, CheckCircle } from 'lucide-react';
+import { readJdPdf } from '../../services/readJdPdf';
 import Loader from '../../components/common/Loader';
 
 const AddEvent = () => {
@@ -10,6 +11,7 @@ const AddEvent = () => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [jdPdf, setJdPdf] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -132,7 +134,7 @@ const AddEvent = () => {
       addToast('Please select the Application Registration Deadline', 'error');
       return;
     }
-    if (!formData.description || !formData.description.trim()) {
+    if (!jdPdf && !formData.description.trim()) {
       addToast('Please enter the Job Specs & Description', 'error');
       return;
     }
@@ -171,10 +173,14 @@ const AddEvent = () => {
         additionalInfo: formData.description
       };
 
-      await createEvent(payload);
+      if (jdPdf) {
+        payload.jdPdf = await readJdPdf(jdPdf);
+      }
+      const { data } = await createEvent(payload);
+      if (data.pdfWarning) addToast(data.pdfWarning, 'error');
       setShowSuccessModal(true);
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to establish event', 'error');
+      addToast(err.response?.data?.message || err.message || 'Failed to establish event', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -328,8 +334,11 @@ const AddEvent = () => {
           )}
 
           <div className="form-group">
+            <label className="form-label" htmlFor="jd-pdf">Job description PDF (optional, up to 5 MB)</label>
+            <input id="jd-pdf" type="file" accept="application/pdf,.pdf" className="form-input"
+              onChange={e => setJdPdf(e.target.files[0] || null)} />
             <label className="form-label">Job Specs & Description</label>
-            <textarea className="form-textarea" style={{ minHeight: '120px' }} placeholder="Detail coding requirements, role responsibilities, tech stacks, and rounds detail..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required></textarea>
+            <textarea className="form-textarea" style={{ minHeight: '120px' }} placeholder="Detail coding requirements, role responsibilities, tech stacks, and rounds detail..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required={!jdPdf}></textarea>
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }} disabled={submitting}>

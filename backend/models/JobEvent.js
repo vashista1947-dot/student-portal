@@ -77,6 +77,8 @@ const jobEventSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  hasJdPdf: { type: Boolean, default: false },
+  jdText: { type: String, select: false },
   additionalInfo: {
     type: String,
     trim: true

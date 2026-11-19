@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEvents, applyToEvent, getProfile, getMyApplications } from '../../services/api';
 import { Briefcase, MapPin, Calendar, IndianRupee, GraduationCap, CheckCircle, XCircle } from 'lucide-react';
 import Loader from '../../components/common/Loader';
+import OpportunityChat from './OpportunityChat';
 import Modal from '../../components/common/Modal';
 
 const CompanyEvents = () => {
@@ -13,6 +14,7 @@ const CompanyEvents = () => {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(null);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [chatEvent, setChatEvent] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
@@ -288,13 +290,17 @@ const CompanyEvents = () => {
                     <span><GraduationCap size={13} style={{ display: 'inline', verticalAlign: 'middle' }} /> Batch {event.batch}</span>
                   </div>
                 </div>
-                {renderActionButton(event)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); setChatEvent(event); }}>Chat about this role</button>
+                  {renderActionButton(event)}
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {chatEvent && <OpportunityChat key={chatEvent._id} event={chatEvent} onClose={() => setChatEvent(null)} />}
       {/* Event Detail Modal */}
       <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.company?.name}>
         {selectedEvent && (
@@ -322,6 +328,7 @@ const CompanyEvents = () => {
                 <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{val}</span>
               </div>
             ) : null)}
+            <button className="btn btn-secondary" onClick={() => { setChatEvent(selectedEvent); setSelectedEvent(null); }}>Chat about this role</button>
             {renderActionButton(selectedEvent, true)}
           </div>
         )}
