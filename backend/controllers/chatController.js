@@ -36,6 +36,20 @@ async function getChat(req, res) {
   res.json(await ChatTurn.find(req.chatScope).sort({ createdAt: 1, _id: 1 }).lean());
 }
 
+async function getMyHistory(req, res) {
+  const query = { student: req.user._id };
+  if (req.query.before) {
+    if (!mongoose.isObjectIdOrHexString(req.query.before)) return res.status(400).json({ message: 'Invalid history cursor.' });
+    query._id = { $lt: req.query.before };
+  }
+  const turns = await ChatTurn.find(query)
+    .select('event question answer status sources searchSuggestions createdAt')
+    .sort({ _id: -1 }).limit(21)
+    .populate({ path: 'event', model: JobEvent, select: 'jobRole company', populate: { path: 'company', select: 'name' } }).lean();
+  const items = turns.slice(0, 20);
+  res.json({ items, next: turns.length > 20 ? items[19]._id : null });
+}
+
 async function ask(req, res) {
   const { requestId, question } = req.body;
   if (typeof question !== 'string' || !question.trim() || question.length > 3000 ||
@@ -83,4 +97,4 @@ async function ask(req, res) {
   }
 }
 
-module.exports = { loadOpportunity, getChat, ask };
+module.exports = { loadOpportunity, getChat, getMyHistory, ask };

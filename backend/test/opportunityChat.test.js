@@ -95,6 +95,13 @@ test('opportunity chat saves scoped history, context, citations and retriable qu
   fail = false;
   assert.equal((await call(1, textChat, msg))[0], 200);
   assert.equal((await call(1, textChat))[1].length, 2);
+  const [archiveStatus, archive] = await call(1, '/chat/history');
+  assert.equal(archiveStatus, 200);
+  assert.equal(archive.items.length, 4);
+  assert.deepEqual(new Set(archive.items.map(t => t.event._id)), new Set([textEvent.event._id, pdfEvent.event._id]));
+  assert.equal(archive.items[0].event.company.name, 'Example');
+  assert.equal(archive.items[0].answer, 'Sample response');
+  assert.deepEqual((await call(2, '/chat/history?student=' + ids[1]))[1].items, []);
   const uri = mongo.getUri();
   await mongoose.disconnect();
   await mongoose.connect(uri);

@@ -302,7 +302,7 @@ const CompanyEvents = () => {
       )}
 
       </section>
-      {chatEvent && <OpportunityChat key={chatEvent._id} event={chatEvent} onClose={() => setChatEvent(null)} />}
+      {chatEvent && <OpportunityChat key={chatEvent._id} event={chatEvent} onSelect={setChatEvent} onClose={() => setChatEvent(null)} />}
       {/* Event Detail Modal */}
       <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.company?.name}>
         {selectedEvent && (

@@ -12,6 +12,7 @@ router.get('/:id', protect, getEvent);
 
 const chat = require('../controllers/chatController');
 const chatAccess = [protect, requireRole('student'), chat.loadOpportunity];
+router.get('/chat/history', protect, requireRole('student'), chat.getMyHistory);
 router.get('/:id/chat', ...chatAccess, chat.getChat);
 router.post('/:id/chat', ...chatAccess, chat.ask);
 

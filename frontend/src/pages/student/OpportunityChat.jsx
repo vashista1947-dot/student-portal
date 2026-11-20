@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Sparkles, History, ArrowUp, RotateCcw } from 'lucide-react';
+import MyChatHistory from './MyChatHistory';
 import Markdown from 'react-markdown';
 import api from '../../services/api';
 import './OpportunityChat.css';
 
-export default function OpportunityChat({ event, onClose }) {
+export default function OpportunityChat({ event, onClose, onSelect }) {
   const path = '/events/' + event._id + '/chat';
   const [turns, setTurns] = useState([]);
   const [draft, setDraft] = useState('');
@@ -16,6 +17,7 @@ export default function OpportunityChat({ event, onClose }) {
   const historyPane = useRef(null);
   const busy = useRef(false);
   const [showConversation, setShowConversation] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const composer = useRef(null);
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function OpportunityChat({ event, onClose }) {
           ? { ...turn, status: 'failed' } : turn));
         setError('');
         setLoaded(true);
+        if (data.length) setShowConversation(true);
         if (data.some(t => t.status === 'pending' && Date.now() - Date.parse(t.updatedAt) < 90000)) {
           timer = setTimeout(refresh, 3500);
         }
@@ -82,11 +85,15 @@ export default function OpportunityChat({ event, onClose }) {
       </header>
       <div className="nani-tools">
         <span>{[event.company?.name, event.jobRole].filter(Boolean).join(' · ')}</span>
-        <button type="button" title="Conversation history" aria-label="Conversation history"
-          aria-pressed={showConversation} disabled={!turns.length || sending}
-          onClick={() => setShowConversation(value => !value)}><History size={17} /></button>
+        <button type="button" className="nani-history-toggle" aria-expanded={historyOpen}
+          onClick={() => setHistoryOpen(value => !value)}><History size={16} /> My chats</button>
       </div>
-      <div className="opportunity-chat">
+      {historyOpen && <MyChatHistory onResume={next => {
+        setHistoryOpen(false);
+        setShowConversation(true);
+        onSelect(next);
+      }} />}
+      <div className="opportunity-chat" hidden={historyOpen}>
         <div className="chat-history" ref={historyPane} role="log" aria-label="Conversation" aria-live="polite">
           {!showConversation && <div className="nani-welcome">
             <Sparkles size={36} strokeWidth={1.4} aria-hidden="true" />
