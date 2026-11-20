@@ -240,7 +240,8 @@ const CompanyEvents = () => {
   if (loading) return <Loader />;
 
   return (
-    <div className="fade-in">
+    <div className={chatEvent ? "events-split" : "fade-in"}>
+      <section className="events-list-pane">
       <div className="page-header">
         <h1>Company Events</h1>
         <p>Browse and apply to placement opportunities</p>
@@ -300,6 +301,7 @@ const CompanyEvents = () => {
         </div>
       )}
 
+      </section>
       {chatEvent && <OpportunityChat key={chatEvent._id} event={chatEvent} onClose={() => setChatEvent(null)} />}
       {/* Event Detail Modal */}
       <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent?.company?.name}>
