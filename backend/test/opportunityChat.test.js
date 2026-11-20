@@ -114,7 +114,7 @@ test('search quota failure falls back once and preserves real generation quota e
   const ask = () => answerQuestion({ jobRole: 'SWE' }, 'what questions are most asked?', []);
   const answer = await ask();
   assert.deepEqual(requests.map(body => !!body.tools), [true, false]);
-  assert.match(answer.answer, /could not be verified/);
+  assert.equal(answer.answer, 'Practice: design a cache.');
   assert.match(answer.answer, /design a cache/);
   assert.deepEqual(answer.sources, []);
   plainStatus = 429;

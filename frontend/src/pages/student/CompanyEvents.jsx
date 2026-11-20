@@ -291,7 +291,7 @@ const CompanyEvents = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); setChatEvent(event); }}>Chat about this role</button>
+                  <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); setChatEvent(event); }}>Ask doubts</button>
                   {renderActionButton(event)}
                 </div>
               </div>
@@ -328,7 +328,7 @@ const CompanyEvents = () => {
                 <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{val}</span>
               </div>
             ) : null)}
-            <button className="btn btn-secondary" onClick={() => { setChatEvent(selectedEvent); setSelectedEvent(null); }}>Chat about this role</button>
+            <button className="btn btn-secondary" onClick={() => { setChatEvent(selectedEvent); setSelectedEvent(null); }}>Ask doubts</button>
             {renderActionButton(selectedEvent, true)}
           </div>
         )}

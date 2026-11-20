@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import Modal from '../../components/common/Modal';
+import { X, MessageCircle } from 'lucide-react';
 import api from '../../services/api';
 import './OpportunityChat.css';
 
@@ -14,6 +14,13 @@ export default function OpportunityChat({ event, onClose }) {
   const [error, setError] = useState('');
   const end = useRef(null);
   const busy = useRef(false);
+  const panel = useRef(null);
+
+  useEffect(() => {
+    const dialog = panel.current;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,16 +74,23 @@ export default function OpportunityChat({ event, onClose }) {
   }
 
   return (
-    <Modal isOpen onClose={onClose} title={event.company?.name + ' · ' + event.jobRole}>
+    <dialog ref={panel} className="nani-panel" aria-labelledby="nani-title"
+      onCancel={e => { e.preventDefault(); onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget && e.clientX < e.currentTarget.getBoundingClientRect().left) onClose(); }}>
+      <header className="nani-header">
+        <MessageCircle aria-hidden="true" size={24} />
+        <div><h2 id="nani-title">nani.ai</h2><small>{[event.company?.name, event.jobRole].filter(Boolean).join(' · ')}</small></div>
+        <button type="button" className="modal-close" aria-label="Close chat" onClick={onClose}><X size={20} /></button>
+      </header>
       <div className="opportunity-chat">
         <div className="chat-history" role="log" aria-label="Conversation" aria-live="polite">
+          <p className="nani-greeting">I hope you are doing good. How can I help you?</p>
           {loading && <p>Loading conversation…</p>}
-          {loaded && !turns.length && <p>Ask about preparation, past questions, or campus visits for this role.</p>}
           {turns.map(turn => (
             <article key={turn.requestId}>
               <p className="chat-question">{turn.question}</p>
               {turn.status === 'complete' ? <>
-                <p className="chat-answer">{turn.answer}</p>
+                <p className="chat-answer">{turn.answer?.replace(/^Live web research is temporarily unavailable\. Historical claims could not be verified\.\s*/, '')}</p>
                 <small>Role context · {turn.reference}</small>
                 {!!turn.sources?.length && <ul aria-label="Research sources">{turn.sources.map((source, i) => (
                   <li key={i}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>
@@ -102,6 +116,6 @@ export default function OpportunityChat({ event, onClose }) {
           <button className="btn btn-primary" disabled={!loaded || sending || !draft.trim()}>Send question</button>
         </form>
       </div>
-    </Modal>
+    </dialog>
   );
 }
