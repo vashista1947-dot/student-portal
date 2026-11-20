@@ -100,3 +100,24 @@ test('opportunity chat saves scoped history, context, citations and retriable qu
   await mongoose.connect(uri);
   assert.equal((await call(1, pdfChat))[1].length, 2);
 });
+
+test('search quota failure falls back once and preserves real generation quota errors', async t => {
+  const { answerQuestion } = require('../utils/opportunityAssistant');
+  const requests = [];
+  let plainStatus = 200;
+  t.mock.method(global, 'fetch', async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    requests.push(body);
+    if (body.tools || plainStatus === 429) return new Response('', { status: 429 });
+    return Response.json({ candidates: [{ content: { parts: [{ text: 'Practice: design a cache.' }] } }] });
+  });
+  const ask = () => answerQuestion({ jobRole: 'SWE' }, 'what questions are most asked?', []);
+  const answer = await ask();
+  assert.deepEqual(requests.map(body => !!body.tools), [true, false]);
+  assert.match(answer.answer, /could not be verified/);
+  assert.match(answer.answer, /design a cache/);
+  assert.deepEqual(answer.sources, []);
+  plainStatus = 429;
+  await assert.rejects(ask, { providerStatus: 429 });
+  assert.equal(requests.length, 4);
+});
